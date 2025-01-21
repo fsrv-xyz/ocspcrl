@@ -4,11 +4,8 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net/http"
-	"os"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -29,21 +26,8 @@ func NewCrlSource(caCertificate *x509.Certificate, responderKeyPair tls.Certific
 	}
 }
 
-func (source *CrlSource) LoadCrlFromFile(path string) error {
-	crlContent, openCrlError := os.ReadFile(path)
-	if openCrlError != nil {
-		return openCrlError
-	}
-	block, rest := pem.Decode(crlContent)
-	if len(rest) > 0 {
-		return fmt.Errorf("failed to decode crl")
-	}
-	crl, parseCrlError := x509.ParseRevocationList(block.Bytes)
-	if parseCrlError != nil {
-		return parseCrlError
-	}
+func (source *CrlSource) UseCrl(crl *x509.RevocationList) {
 	source.crl = crl
-	return nil
 }
 
 func (source *CrlSource) Response(request *ocsp.Request) ([]byte, http.Header, error) {
