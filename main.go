@@ -91,7 +91,8 @@ func main() {
 	if loadCrlError != nil {
 		log.Fatalf("failed to load crl: %v", loadCrlError)
 	}
-	source.UseCrl(crl)
+	metrics.CrlEntries.Set(float64(len(crl.RevokedCertificateEntries)))
+	source.UseCrl(*crl)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
@@ -102,6 +103,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/pkix-crl")
 		w.Write(crl.Raw)
 	})
+	applicationRouter.HandleFunc("/crl.pem", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/pkix-crl")
+		pem.Encode(w, &pem.Block{Type: "X509 CRL", Bytes: crl.Raw})
+	})
 
 	applicationServer := &http.Server{Addr: config.applicationListenAddress, Handler: metrics.Middleware(applicationRouter)}
 	metricsSever := &http.Server{Addr: config.metricsListenAddress, Handler: promhttp.Handler()}
@@ -109,14 +114,14 @@ func main() {
 	applicationServerClosed := make(chan any)
 	metricsServerClosed := make(chan any)
 	go func() {
-		log.Printf("starting application server on %s", config.applicationListenAddress)
+		log.Printf("starting application server on %+q", config.applicationListenAddress)
 		if listenError := applicationServer.ListenAndServe(); listenError != nil {
 			log.Printf("application error: %v", listenError)
 		}
 		close(applicationServerClosed)
 	}()
 	go func() {
-		log.Printf("starting metrics server on %s", config.metricsListenAddress)
+		log.Printf("starting metrics server on %+q", config.metricsListenAddress)
 		if listenError := metricsSever.ListenAndServe(); listenError != nil {
 			log.Printf("metrics error: %v", listenError)
 		}

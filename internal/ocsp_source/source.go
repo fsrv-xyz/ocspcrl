@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"math/big"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -16,6 +17,7 @@ type CrlSource struct {
 	responderCertificate *x509.Certificate
 	responderKey         crypto.Signer
 	crl                  *x509.RevocationList
+	crlMutex             sync.Mutex
 }
 
 func NewCrlSource(caCertificate *x509.Certificate, responderKeyPair tls.Certificate) *CrlSource {
@@ -26,8 +28,10 @@ func NewCrlSource(caCertificate *x509.Certificate, responderKeyPair tls.Certific
 	}
 }
 
-func (source *CrlSource) UseCrl(crl *x509.RevocationList) {
-	source.crl = crl
+func (source *CrlSource) UseCrl(crl x509.RevocationList) {
+	source.crlMutex.Lock()
+	defer source.crlMutex.Unlock()
+	source.crl = &crl
 }
 
 func (source *CrlSource) Response(request *ocsp.Request) ([]byte, http.Header, error) {
