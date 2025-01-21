@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"ocspcrl/internal/metrics"
@@ -15,8 +14,11 @@ import (
 
 	"github.com/alecthomas/kingpin/v2"
 	cfocsp "github.com/cloudflare/cfssl/ocsp"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"ocspcrl/internal/ocsp_source"
 )
+
+type loadCrlFunction func() error
 
 func loadCrlFromFile(path string) (*x509.RevocationList, error) {
 	crlContent, openCrlError := os.ReadFile(path)
@@ -32,6 +34,24 @@ func loadCrlFromFile(path string) (*x509.RevocationList, error) {
 		return nil, parseCrlError
 	}
 	return crl, nil
+}
+
+func reloadCrlWorker(signal chan os.Signal, loadCrlFunc loadCrlFunction) {
+	defer log.Println("reload crl worker stopped")
+	for {
+		select {
+		case _, ok := <-signal:
+			if !ok {
+				return
+			}
+			loadCrlError := loadCrlFunc()
+			if loadCrlError != nil {
+				log.Printf("failed to reload crl: %v", loadCrlError)
+			} else {
+				log.Println("reloaded crl")
+			}
+		}
+	}
 }
 
 type responder struct {
@@ -87,15 +107,32 @@ func main() {
 	}
 
 	source := ocsp_source.NewCrlSource(caCertificate, responderKeyPair)
-	crl, loadCrlError := loadCrlFromFile(config.crlSourceFile.path)
-	if loadCrlError != nil {
-		log.Fatalf("failed to load crl: %v", loadCrlError)
+
+	crl := &x509.RevocationList{}
+
+	loadCrl := func() error {
+		crlCandiate, loadCrlError := loadCrlFromFile(config.crlSourceFile.path)
+		if loadCrlError != nil {
+			return loadCrlError
+		}
+		metrics.CrlEntries.Set(float64(len(crlCandiate.RevokedCertificateEntries)))
+		source.UseCrl(*crlCandiate)
+		crl = crlCandiate
+		return nil
 	}
-	metrics.CrlEntries.Set(float64(len(crl.RevokedCertificateEntries)))
-	source.UseCrl(*crl)
 
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// initial load of the CRL
+	if loadCrlError := loadCrl(); loadCrlError != nil {
+		log.Fatalf("failed to load crl: %v", loadCrlError)
+	}
+
+	// on HUP reload the CRL
+	hupChan := make(chan os.Signal, 1)
+	signal.Notify(hupChan, syscall.SIGHUP)
+	go reloadCrlWorker(hupChan, loadCrl)
 
 	applicationRouter := http.NewServeMux()
 	applicationRouter.Handle("/ocsp", cfocsp.NewResponder(source, nil))
@@ -129,6 +166,7 @@ func main() {
 	}()
 
 	<-signalChan
+	close(hupChan)
 	applicationServer.Shutdown(nil)
 	metricsSever.Shutdown(nil)
 	<-applicationServerClosed
