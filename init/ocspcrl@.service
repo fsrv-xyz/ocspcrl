@@ -1,0 +1,16 @@
+[Unit]
+Description=OCSP / CRL server %i
+After=network.target
+ConditionPathExists=/etc/default/ocspcrl-%i
+
+[Service]
+IPAccounting=true
+MemoryAccounting=true
+Slice=ocspcrl.slice
+EnvironmentFile=/etc/default/ocspcrl-%i
+ExecStart=/usr/bin/ocspcrl $OCSPCRL_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

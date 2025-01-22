@@ -1,0 +1,27 @@
+version: 2
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+
+nfpms:
+  - maintainer: "Florian Bauer"
+    formats:
+      - deb
+    scripts:
+      postinstall: ./init/postinstall.sh
+    contents:
+      - src: ./init/ocspcrl@.service
+        dst: /etc/systemd/system/ocspcrl@.service
+        type: config
+
