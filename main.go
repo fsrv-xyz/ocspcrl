@@ -11,12 +11,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ocspcrl/internal/metrics"
-	"ocspcrl/internal/ocsp_source"
-
 	"github.com/alecthomas/kingpin/v2"
 	cfocsp "github.com/cloudflare/cfssl/ocsp"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"ocspcrl/internal/metrics"
+	"ocspcrl/internal/ocsp_source"
 )
 
 type loadCrlFunction func() error
