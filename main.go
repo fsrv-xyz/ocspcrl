@@ -82,7 +82,7 @@ func main() {
 	app.HelpFlag.Short('h')
 	app.Flag("responder.certificate-path", "Path to the responder certificate").Envar("RESPONDER_CERTIFICATE_PATH").Required().ExistingFileVar(&config.responder.certificatePath)
 	app.Flag("responder.key-path", "Path to the responder key").Envar("RESPONDER_KEY_PATH").Required().ExistingFileVar(&config.responder.keyPath)
-	app.Flag("ca-crt-path", "Path to the CA certificate").Envar("CA_CRL_PATH").Required().ExistingFileVar(&config.caCrtPath)
+	app.Flag("ca-crt-path", "Path to the CA certificate").Envar("CA_CRT_PATH").Required().ExistingFileVar(&config.caCrtPath)
 	app.Flag("crl-source-type", "Type of CRL source").Envar("CRL_SOURCE").Default("file").EnumVar(&config.crlSourceType, "file")
 	app.Flag("source.file.path", "Path to the CRL file").Envar("SOURCE_FILE_PATH").ExistingFileVar(&config.crlSourceFile.path)
 	app.Flag("web.listen-address", "Address for application endpoint").Envar("WEB_LISTEN_ADDRESS").Default(":8080").StringVar(&config.applicationListenAddress)
