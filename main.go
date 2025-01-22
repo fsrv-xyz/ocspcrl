@@ -74,6 +74,7 @@ type configuration struct {
 }
 
 func main() {
+	log.SetFlags(log.Lshortfile)
 	config := &configuration{
 		responder:     &responder{},
 		crlSourceFile: &crlSourceFile{},
