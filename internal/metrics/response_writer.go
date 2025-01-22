@@ -1,6 +1,8 @@
 package metrics
 
-import "net/http"
+import (
+	"net/http"
+)
 
 func newResponseWriter(w http.ResponseWriter) *responseWriter {
 	return &responseWriter{w, http.StatusOK}
