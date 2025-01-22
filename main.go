@@ -136,8 +136,11 @@ func main() {
 	signal.Notify(hupChan, syscall.SIGHUP)
 	go reloadCrlWorker(hupChan, loadCrl)
 
+	responder := cfocsp.NewResponder(source, nil)
+
 	applicationRouter := http.NewServeMux()
-	applicationRouter.Handle("/ocsp", cfocsp.NewResponder(source, nil))
+	applicationRouter.Handle("/ocsp", responder)
+	applicationRouter.Handle("/ocsp/", responder)
 	applicationRouter.HandleFunc("/crl", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/pkix-crl")
 		w.Write(crl.Raw)
