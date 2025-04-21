@@ -113,13 +113,13 @@ func main() {
 	crl := &x509.RevocationList{}
 
 	loadCrl := func() error {
-		crlCandiate, loadCrlError := loadCrlFromFile(config.crlSourceFile.path)
+		curlCandidate, loadCrlError := loadCrlFromFile(config.crlSourceFile.path)
 		if loadCrlError != nil {
 			return loadCrlError
 		}
-		metrics.CrlEntries.Set(float64(len(crlCandiate.RevokedCertificateEntries)))
-		source.UseCrl(*crlCandiate)
-		crl = crlCandiate
+		metrics.CrlEntries.Set(float64(len(curlCandidate.RevokedCertificateEntries)))
+		source.UseCrl(*curlCandidate)
+		crl = curlCandidate
 		return nil
 	}
 
