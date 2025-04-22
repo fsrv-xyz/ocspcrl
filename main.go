@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -26,11 +27,21 @@ func loadCrlFromFile(path string) (*x509.RevocationList, error) {
 	if openCrlError != nil {
 		return nil, openCrlError
 	}
-	block, rest := pem.Decode(crlContent)
-	if len(rest) > 0 {
-		return nil, fmt.Errorf("failed to decode crl")
+
+	// if the file contains a pem block, decode it
+	// otherwise, assume it is a DER encoded CRL
+	crlBlock := &pem.Block{}
+	if bytes.Contains(crlContent, []byte("BEGIN")) {
+		block, rest := pem.Decode(crlContent)
+		if len(rest) > 0 {
+			return nil, fmt.Errorf("failed to decode crl")
+		}
+		crlBlock = block
+	} else {
+		crlBlock = &pem.Block{Type: "X509 CRL", Bytes: crlContent}
 	}
-	crl, parseCrlError := x509.ParseRevocationList(block.Bytes)
+
+	crl, parseCrlError := x509.ParseRevocationList(crlBlock.Bytes)
 	if parseCrlError != nil {
 		return nil, parseCrlError
 	}
