@@ -151,7 +151,7 @@ func main() {
 
 	applicationRouter := http.NewServeMux()
 	applicationRouter.Handle("/ocsp", responder)
-	applicationRouter.Handle("/ocsp/", responder)
+	applicationRouter.Handle("/ocsp/", http.StripPrefix("/ocsp/", responder))
 	applicationRouter.HandleFunc("/crl", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/pkix-crl")
 		w.Write(crl.Raw)
