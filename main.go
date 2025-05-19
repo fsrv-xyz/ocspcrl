@@ -119,6 +119,10 @@ func main() {
 		log.Fatalf("failed to parse ca certificate: %v", loadCaCertificateError)
 	}
 
+	if !bytes.Equal(caCertificate.RawSubject, responderKeyPair.Leaf.RawIssuer) {
+		log.Fatalf("responder certificate issuer does not match ca certificate subject; %+q != %+q", caCertificate.Subject.String(), responderKeyPair.Leaf.Issuer.String())
+	}
+
 	source := ocsp_source.NewCrlSource(caCertificate, responderKeyPair)
 
 	crl := &x509.RevocationList{}
