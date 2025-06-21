@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -164,23 +165,31 @@ func main() {
 		w.Header().Set("Content-Type", "application/pkix-crl")
 		pem.Encode(w, &pem.Block{Type: "X509 CRL", Bytes: crl.Raw})
 	})
+	applicationRouter.HandleFunc("/ca", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/pkix-cert")
+		w.Write(caCertificate.Raw)
+	})
+	applicationRouter.HandleFunc("/ca.pem", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-x509-ca-cert")
+		pem.Encode(w, &pem.Block{Type: "CERTIFICATE", Bytes: caCertificate.Raw})
+	})
 
 	applicationServer := &http.Server{Addr: config.applicationListenAddress, Handler: metrics.Middleware(applicationRouter)}
-	metricsSever := &http.Server{Addr: config.metricsListenAddress, Handler: promhttp.Handler()}
+	metricsServer := &http.Server{Addr: config.metricsListenAddress, Handler: promhttp.Handler()}
 
 	applicationServerClosed := make(chan any)
 	metricsServerClosed := make(chan any)
 	go func() {
 		log.Printf("starting application server on %+q", config.applicationListenAddress)
-		if listenError := applicationServer.ListenAndServe(); listenError != nil {
+		if listenError := applicationServer.ListenAndServe(); !errors.Is(listenError, http.ErrServerClosed) {
 			log.Printf("application error: %v", listenError)
 		}
 		close(applicationServerClosed)
 	}()
 	go func() {
 		log.Printf("starting metrics server on %+q", config.metricsListenAddress)
-		if listenError := metricsSever.ListenAndServe(); listenError != nil {
-			log.Printf("metrics error: %v", listenError)
+		if listenError := metricsServer.ListenAndServe(); !errors.Is(listenError, http.ErrServerClosed) {
+			log.Printf("metrics server error: %v", listenError)
 		}
 		close(metricsServerClosed)
 	}()
@@ -188,7 +197,7 @@ func main() {
 	<-signalChan
 	close(hupChan)
 	applicationServer.Shutdown(nil)
-	metricsSever.Shutdown(nil)
+	metricsServer.Shutdown(nil)
 	<-applicationServerClosed
 	<-metricsServerClosed
 }
