@@ -5,8 +5,8 @@ go 1.23.4
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudflare/cfssl v1.6.5
-	github.com/prometheus/client_golang v1.22.0
-	golang.org/x/crypto v0.40.0
+	github.com/prometheus/client_golang v1.23.0
+	golang.org/x/crypto v0.41.0
 )
 
 require (
@@ -18,10 +18,10 @@ require (
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.65.0 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
