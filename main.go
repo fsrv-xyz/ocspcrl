@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -124,6 +125,9 @@ func main() {
 		log.Fatalf("responder certificate issuer does not match ca certificate subject; %+q != %+q", caCertificate.Subject.String(), responderKeyPair.Leaf.Issuer.String())
 	}
 
+	metrics.ResponderCertNotAfter.Set(float64(responderKeyPair.Leaf.NotAfter.Unix()))
+	metrics.CaCertNotAfter.Set(float64(caCertificate.NotAfter.Unix()))
+
 	source := ocsp_source.NewCrlSource(caCertificate, responderKeyPair)
 
 	crl := &x509.RevocationList{}
@@ -131,9 +135,18 @@ func main() {
 	loadCrl := func() error {
 		curlCandidate, loadCrlError := loadCrlFromFile(config.crlSourceFile.path)
 		if loadCrlError != nil {
+			metrics.CrlReloads.WithLabelValues(metrics.ReloadResultError).Inc()
 			return loadCrlError
 		}
 		metrics.CrlEntries.Set(float64(len(curlCandidate.RevokedCertificateEntries)))
+		metrics.CrlThisUpdate.Set(float64(curlCandidate.ThisUpdate.Unix()))
+		metrics.CrlNextUpdate.Set(float64(curlCandidate.NextUpdate.Unix()))
+		if curlCandidate.Number != nil {
+			number, _ := new(big.Float).SetInt(curlCandidate.Number).Float64()
+			metrics.CrlNumber.Set(number)
+		}
+		metrics.CrlLastReload.SetToCurrentTime()
+		metrics.CrlReloads.WithLabelValues(metrics.ReloadResultSuccess).Inc()
 		source.UseCrl(*curlCandidate)
 		crl = curlCandidate
 		return nil

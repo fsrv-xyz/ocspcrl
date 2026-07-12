@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ocsp"
+
+	"ocspcrl/internal/metrics"
 )
 
 type CrlSource struct {
@@ -57,6 +59,7 @@ func (source *CrlSource) Response(request *ocsp.Request) ([]byte, http.Header, e
 }
 
 func (source *CrlSource) buildRevokedResponse(serialNumber *big.Int, revocationTime time.Time) ([]byte, error) {
+	metrics.OcspResponses.WithLabelValues(metrics.OcspStatusRevoked).Inc()
 	return source.buildResponse(ocsp.Response{
 		SerialNumber:     serialNumber,
 		Status:           ocsp.Revoked,
@@ -68,6 +71,7 @@ func (source *CrlSource) buildRevokedResponse(serialNumber *big.Int, revocationT
 }
 
 func (source *CrlSource) buildOkResponse(serialNumber *big.Int) (ocspResponse []byte, err error) {
+	metrics.OcspResponses.WithLabelValues(metrics.OcspStatusGood).Inc()
 	return source.buildResponse(ocsp.Response{
 		SerialNumber: serialNumber,
 		Status:       ocsp.Good,
@@ -78,6 +82,7 @@ func (source *CrlSource) buildOkResponse(serialNumber *big.Int) (ocspResponse []
 }
 
 func (source *CrlSource) buildServerErrorResponse() (ocspResponse []byte, err error) {
+	metrics.OcspResponses.WithLabelValues(metrics.OcspStatusServerError).Inc()
 	return source.buildResponse(ocsp.Response{
 		Status:     ocsp.ServerFailed,
 		ThisUpdate: time.Now(),
