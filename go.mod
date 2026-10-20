@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
-	github.com/cloudflare/cfssl v1.7.0
+	github.com/cloudflare/cfssl v1.7.1
 	github.com/prometheus/client_golang v1.24.1
 	golang.org/x/crypto v0.57.0
 )
